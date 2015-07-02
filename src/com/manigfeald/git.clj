@@ -10,7 +10,10 @@
     (assert (zero? (:exit result)))
     result))
 
-(defn get-blob [sha]
+(defn get-blob
+  "given the sha of a git blob object, get the contents as a
+  ByteBuffer"
+  [sha]
   (with-open [i (-> (ProcessBuilder.
                      ^"[Ljava.lang.String;"
                      (into-array String ["git" "cat-file" "-p" sha]))
@@ -20,7 +23,10 @@
     (io/copy i o)
     (ByteBuffer/wrap (.toByteArray o))))
 
-(defn put-blob [data]
+(defn put-blob
+  "given bytes or an inputstream, store the data as a blob in git and
+  return the sha"
+  [data]
   (-> (sh "git" "hash-object" "--stdin"  "-w" :in data)
       (:out)
       (string/split #"\n")
@@ -60,17 +66,16 @@
                     name (subs line idx)]]
           [name [(keyword type) sha]])))
 
-(defn put-commit
-  ([sha {:keys [message parent]}]
-     (-> (apply sh
-                (concat
-                 ["git" "commit-tree" sha]
-                 (when parent
-                   ["-p" parent])
-                 [:in message]))
-         (:out)
-         (string/split #"\n")
-         (first))))
+(defn put-commit [sha {:keys [message parent]}]
+  (-> (apply sh
+             (concat
+              ["git" "commit-tree" sha]
+              (when parent
+                ["-p" parent])
+              [:in message]))
+      (:out)
+      (string/split #"\n")
+      (first)))
 
 (defn get-commit [sha]
   (loop [[c & cs] (->> (sh "git" "cat-file" "-p" sha)
